@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(Get-Content \"c:\\\\Users\\\\goura\\\\OneDrive\\\\Desktop\\\\Creating AI Agents\\\\MyProjectUnderstanding\\\\.env\" | ForEach-Object { \\($_ -split '='\\)[0] })",
+      "PowerShell($p = \"c:\\\\Users\\\\goura\\\\OneDrive\\\\Desktop\\\\Creating AI Agents\\\\MyProjectUnderstanding\\\\.env\"; Write-Output \"Exists: $\\(Test-Path $p\\)\"; Write-Output \"Length: $\\(\\(Get-Item $p\\).Length\\)\"; Write-Output \"---lines---\"; Get-Content $p -Raw)",
+      "WebSearch"
+    ]
+  }
+}

@@ -1,0 +1,338 @@
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                    DASHBOARD SETUP - COMPLETE STEPS                           ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+QUICK VERSION (Copy-Paste)
+═════════════════════════════════════════════════════════════════════════════════
+
+Step 1: Activate Virtual Environment
+─────────────────────────────────────
+Windows:    .venv\Scripts\activate
+Mac/Linux:  source .venv/bin/activate
+
+
+Step 2: Install Dependencies
+──────────────────────────────
+pip install -r requirements.txt
+
+
+Step 3: Run Dashboard
+─────────────────────
+streamlit run dashboard/app.py
+
+
+Step 4: Open Browser
+────────────────────
+Go to: http://localhost:8501
+
+
+✅ DONE! Dashboard is running.
+
+
+═════════════════════════════════════════════════════════════════════════════════
+DETAILED STEPS
+═════════════════════════════════════════════════════════════════════════════════
+
+STEP 1: ENVIRONMENT SETUP
+─────────────────────────────────────────────────────────────────────────────────
+
+If you don't have a virtual environment yet:
+    python -m venv .venv
+
+Activate it:
+    Windows:  .venv\Scripts\activate
+    Mac:      source .venv/bin/activate
+    Linux:    source .venv/bin/activate
+
+You should see (.venv) at the start of your terminal line.
+
+
+STEP 2: INSTALL DEPENDENCIES
+─────────────────────────────────────────────────────────────────────────────────
+
+Install all required packages:
+    pip install -r requirements.txt
+
+What gets installed:
+    • streamlit (dashboard framework)
+    • pandas, numpy (data processing)
+    • yfinance (stock prices)
+    • plotly (charts)
+    • google-api-client (Google Sheets)
+    • And more...
+
+Takes ~2-3 minutes.
+
+
+STEP 3: CONFIGURE ENVIRONMENT
+─────────────────────────────────────────────────────────────────────────────────
+
+Copy the environment template:
+    cp .env.example .env
+
+Edit .env and add your email (for SEC EDGAR):
+    SEC_EDGAR_USER_AGENT=StockScreenerDashboard (your.email@example.com)
+
+Save the file.
+
+
+STEP 4: RUN THE DASHBOARD
+─────────────────────────────────────────────────────────────────────────────────
+
+Start Streamlit server:
+    streamlit run dashboard/app.py
+
+You should see:
+    ✓ "You can now view your Streamlit app in your browser"
+    ✓ "Local URL: http://localhost:8501"
+
+
+STEP 5: OPEN IN BROWSER
+─────────────────────────────────────────────────────────────────────────────────
+
+Open your web browser and go to:
+    http://localhost:8501
+
+You should see the Stock Screener dashboard with 5 pages:
+    📊 Dashboard (overview)
+    🛠️ Strategy Builder (create strategies)
+    🔍 Run Screener (test strategies)
+    📋 Fundamentals (company data)
+    🔄 Data Refresh (fetch market data)
+
+
+═════════════════════════════════════════════════════════════════════════════════
+WHAT TO DO NEXT
+═════════════════════════════════════════════════════════════════════════════════
+
+OPTION A: Explore with Demo Data
+─────────────────────────────────────────────────────────────────────────────────
+If you already have stock_screener.db with data:
+    1. Go to Run Screener page
+    2. Select a strategy (or create one)
+    3. Click "Run Strategy"
+    4. See matching stocks
+
+
+OPTION B: Create Your First Strategy
+─────────────────────────────────────────────────────────────────────────────────
+1. Go to "Strategy Builder" page
+2. Paste this example (220 EMA Breakout):
+
+{
+  "name": "220 EMA Breakout",
+  "root": {
+    "logic": "AND",
+    "items": [
+      {"metric": "sma150", "operator": ">", "compare_type": "metric", "compare_metric": "ema220"},
+      {"metric": "price", "operator": ">", "compare_type": "metric", "compare_metric": "sma50"},
+      {"metric": "sma50", "operator": ">", "compare_type": "metric", "compare_metric": "sma150"},
+      {"metric": "price", "operator": ">", "compare_type": "metric", "compare_metric": "52w_low_25pct"},
+      {"condition_type": "dipped_below", "compare_level": "ema220", "days": 90}
+    ]
+  }
+}
+
+3. Click "Save Strategy"
+4. Go to Run Screener page
+5. Select your strategy and test
+
+
+OPTION C: Fetch Fresh Stock Data
+─────────────────────────────────────────────────────────────────────────────────
+1. Go to "Data Refresh" page
+2. Click "Refresh US Companies Universe"
+3. Click "Refresh Price Data"
+4. Wait for completion (30-60 minutes)
+5. All your new metrics (sma150, sma220, ema220, etc.) are calculated automatically
+
+
+═════════════════════════════════════════════════════════════════════════════════
+TROUBLESHOOTING
+═════════════════════════════════════════════════════════════════════════════════
+
+Problem: "ModuleNotFoundError: No module named 'stockscreener'"
+Solution:
+    1. Ensure you're in the project root directory
+    2. Ensure virtual environment is activated: .venv\Scripts\activate
+    3. Try: pip install -e .
+
+
+Problem: Dashboard won't open (port 8501)
+Solution:
+    # Kill existing process
+    netstat -ano | findstr :8501
+    taskkill /PID <PID> /F
+
+    # Try different port
+    streamlit run dashboard/app.py --server.port 8502
+    # Then go to http://localhost:8502
+
+
+Problem: "database is locked" error
+Solution:
+    1. Press Ctrl+C to stop the dashboard
+    2. Wait 5 seconds
+    3. Restart: streamlit run dashboard/app.py
+
+
+Problem: No strategies appear in Run Screener
+Solution:
+    1. Go to Strategy Builder page
+    2. Create and save at least one strategy
+    3. Refresh your browser (F5)
+    4. Go back to Run Screener
+
+
+Problem: No stocks to screen
+Solution:
+    Need to load data first:
+    1. Go to Data Refresh page
+    2. Click "Refresh US Companies Universe"
+    3. Click "Refresh Price Data"
+    4. Wait for completion
+    5. Then strategies will have data to screen
+
+
+═════════════════════════════════════════════════════════════════════════════════
+KEY DASHBOARD PAGES
+═════════════════════════════════════════════════════════════════════════════════
+
+📊 DASHBOARD
+    • Overview of data status
+    • How many stocks loaded
+    • When data was last refreshed
+    • Number of saved strategies
+    → Read-only, informational only
+
+
+🛠️ STRATEGY BUILDER
+    • View all 60+ available metrics
+    • Create new strategies (JSON format)
+    • Save strategies to database
+    • View saved strategies
+    → Main work happens here
+
+
+🔍 RUN SCREENER
+    • Select a saved strategy
+    • Choose tickers to screen
+    • Run the strategy
+    • See results in table
+    • Download results as CSV
+    → Test your strategies here
+
+
+📋 FUNDAMENTALS
+    • Search for a stock ticker
+    • View company financials
+    • P/E ratio, profit margin, ROE, etc.
+    • Used for building fundamental conditions
+    → Reference data for building strategies
+
+
+🔄 DATA REFRESH
+    • Refresh US companies list
+    • Refresh price data (2+ years history)
+    • Compute technical indicators
+    • View refresh logs
+    → Admin/maintenance tasks
+
+
+═════════════════════════════════════════════════════════════════════════════════
+YOUR NEW METRICS (Ready to Use!)
+═════════════════════════════════════════════════════════════════════════════════
+
+MOVING AVERAGES (NEW):
+    sma150  →  150-day Simple Moving Average
+    sma220  →  220-day Simple Moving Average
+    ema220  →  220-day Exponential Moving Average
+
+SUPPORT LEVELS (NEW):
+    52w_low      →  52-week Low
+    52w_low_25pct →  52-week Low × 1.25 (for "25% above low")
+
+EXISTING METRICS (Still available):
+    Technical:  sma20, sma50, sma200, rsi14, macd, bb_upper, bb_lower, etc.
+    Fundamental: pe_ratio, profit_margin, roe, revenue_growth, etc.
+    Price:      price, pct_change_1d/1m/3m/1y, volume, etc.
+
+SPECIAL CONDITION (NEW):
+    dipped_below → Check if price touched a level in past N days
+
+
+═════════════════════════════════════════════════════════════════════════════════
+DOCUMENTATION
+═════════════════════════════════════════════════════════════════════════════════
+
+START HERE:
+    START_HERE.md  →  Master index (where to find everything)
+
+QUICK GUIDES:
+    QUICK_START.md         →  5-minute setup (this file)
+    QUICK_REFERENCE.md     →  1-page cheat sheet
+    RUN_DASHBOARD.md       →  Detailed step-by-step guide
+
+COMPLETE GUIDES:
+    STRATEGY_BUILDER_GUIDE.md  →  Complete strategy documentation
+    CHANGES_SUMMARY.md         →  What changed and why
+
+EXAMPLES:
+    tools/example_strategies.py  →  Pre-built strategies
+
+
+═════════════════════════════════════════════════════════════════════════════════
+WORKFLOW SUMMARY
+═════════════════════════════════════════════════════════════════════════════════
+
+1. SETUP (5 minutes)
+   ├── Activate venv
+   ├── Install dependencies
+   └── Run dashboard
+
+2. LOAD DATA (Optional, 30-60 min)
+   ├── Go to Data Refresh page
+   ├── Fetch companies and prices
+   └── Technicals calculated automatically
+
+3. BUILD STRATEGY (2-5 minutes)
+   ├── Go to Strategy Builder page
+   ├── Write strategy JSON
+   └── Click Save
+
+4. TEST STRATEGY (1-2 minutes)
+   ├── Go to Run Screener page
+   ├── Select strategy
+   ├── Click Run Strategy
+   └── See results
+
+5. ITERATE (Repeat 3-4 as needed)
+   ├── Adjust conditions
+   ├── Save new version
+   └── Test again
+
+6. EXPORT RESULTS (1 minute)
+   ├── Go to Run Screener
+   ├── Run final strategy
+   └── Click "Download as CSV"
+
+
+═════════════════════════════════════════════════════════════════════════════════
+KEYBOARD SHORTCUTS (In Dashboard)
+═════════════════════════════════════════════════════════════════════════════════
+
+Ctrl + C     →  Stop dashboard
+R            →  Reload app
+Ctrl + K, C  →  Clear Streamlit cache
+F5           →  Refresh browser
+
+
+═════════════════════════════════════════════════════════════════════════════════
+
+                          YOU'RE READY TO GO! 🚀
+
+                    .venv\Scripts\activate
+                    streamlit run dashboard/app.py
+                    → http://localhost:8501
+
+═════════════════════════════════════════════════════════════════════════════════
