@@ -16,9 +16,31 @@ def init_db(db_path: Path = DB_PATH) -> sqlite3.Connection:
     with open(schema_path, "r") as f:
         con.executescript(f.read())
     con.commit()
+
+    _migrate_missing_columns(con)
+    con.commit()
     con.close()
 
     return get_connection(db_path)
+
+
+def _migrate_missing_columns(con: sqlite3.Connection) -> None:
+    """Add columns to technicals_latest that exist in the schema but not in an older table
+    on disk (CREATE TABLE IF NOT EXISTS skips existing tables, so new columns never land there
+    without this)."""
+    expected_columns = {
+        "sma150": "REAL", "sma220": "REAL", "ema220": "REAL",
+        '"52w_low"': "REAL", '"52w_low_25pct"': "REAL",
+    }
+
+    cursor = con.cursor()
+    cursor.execute("PRAGMA table_info(technicals_latest)")
+    existing = {row[1] for row in cursor.fetchall()}
+
+    for col, col_type in expected_columns.items():
+        col_name = col.strip('"')
+        if col_name not in existing:
+            cursor.execute(f"ALTER TABLE technicals_latest ADD COLUMN {col} {col_type}")
 
 
 def get_connection(db_path: Path = DB_PATH) -> sqlite3.Connection:

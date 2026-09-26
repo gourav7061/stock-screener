@@ -5,6 +5,7 @@ import sys
 import argparse
 from datetime import datetime, timezone
 import sqlite3
+import pandas as pd
 
 # Add parent to path so we can import stockscreener
 sys.path.insert(0, str(__import__('pathlib').Path(__file__).parent.parent))
@@ -147,5 +148,4 @@ def main():
 
 
 if __name__ == "__main__":
-    import pandas as pd  # Import here to avoid import-order issues
     main()

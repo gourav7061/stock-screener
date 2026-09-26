@@ -181,8 +181,8 @@ def compute_and_store_technicals(con: sqlite3.Connection, ticker: str):
     if not rows:
         return
 
-    # Convert to DataFrame
-    df = pd.DataFrame(rows, columns=["date", "open", "high", "low", "close", "adj_close", "volume"])
+    # Convert to DataFrame (capitalized to match compute_technicals_for_ticker's yfinance-style column names)
+    df = pd.DataFrame(rows, columns=["date", "Open", "High", "Low", "Close", "Adj Close", "Volume"])
     df["date"] = pd.to_datetime(df["date"])
     df = df.set_index("date")
     df = df.sort_index()

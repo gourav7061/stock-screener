@@ -3,36 +3,123 @@
 import streamlit as st
 import sys
 from pathlib import Path
-from datetime import datetime, timezone
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from stockscreener.db import get_connection, get_last_refresh
+from stockscreener.db import init_db, get_connection
 from stockscreener.config import DB_PATH
+from tools.build_universe import populate_companies
+from tools.refresh_prices import refresh_prices
 
 st.set_page_config(page_title="Data Refresh", layout="wide")
 st.title("🔄 Data Refresh & Admin")
-st.markdown("Manually trigger data pipelines to update cache.")
+st.markdown("Load stock data directly from this page — no command line needed.")
+
+try:
+    init_db(DB_PATH)
+except Exception:
+    pass
 
 con = get_connection(DB_PATH)
 
-st.warning("⚠️ **Beta Feature**: Data pipelines are under development. In v1, use command-line tools:")
-st.code("""
-# Build universe (US + India tickers)
-python tools/build_universe.py --market ALL
+# ============================================================================
+# STEP 1: BUILD COMPANY UNIVERSE
+# ============================================================================
+st.subheader("1. Build Company Universe")
+st.caption("Loads ticker symbols into the `companies` table. Do this first — the screener has nothing to run against until this step completes.")
 
-# Refresh US fundamentals from SEC EDGAR
-python tools/refresh_us_fundamentals.py --tickers AAPL MSFT
+col1, col2 = st.columns(2)
+full_universe = st.checkbox("Load full universe (slower)", value=False,
+                            help="Unchecked = small test set (S&P 100 / Nifty 50). Checked = full market (thousands of tickers, much slower).")
 
-# Refresh price data and technicals
-python tools/refresh_prices.py --market US --period 2y
-""", language="bash")
+with col1:
+    if st.button("🇺🇸 Load US Companies", use_container_width=True):
+        with st.spinner("Fetching US tickers..."):
+            try:
+                ok = populate_companies(con, "US", test_mode=not full_universe)
+                if ok:
+                    cursor = con.cursor()
+                    cursor.execute("SELECT COUNT(*) FROM companies WHERE market = 'US'")
+                    count = cursor.fetchone()[0]
+                    st.success(f"✅ Loaded US companies. Total US tickers in DB: {count}")
+                else:
+                    st.error("❌ Failed to load US companies. Check logs below for details.")
+            except Exception as e:
+                st.error(f"❌ Error: {e}")
 
-st.subheader("Refresh Status")
+with col2:
+    if st.button("🇮🇳 Load India Companies", use_container_width=True):
+        with st.spinner("Fetching India tickers..."):
+            try:
+                ok = populate_companies(con, "IN", test_mode=not full_universe)
+                if ok:
+                    cursor = con.cursor()
+                    cursor.execute("SELECT COUNT(*) FROM companies WHERE market = 'IN'")
+                    count = cursor.fetchone()[0]
+                    st.success(f"✅ Loaded India companies. Total India tickers in DB: {count}")
+                else:
+                    st.error("❌ Failed to load India companies. Check logs below for details.")
+            except Exception as e:
+                st.error(f"❌ Error: {e}")
 
-# Show last refresh times
+# Show current universe size
+cursor = con.cursor()
+cursor.execute("SELECT market, COUNT(*) FROM companies GROUP BY market")
+universe_counts = dict(cursor.fetchall())
+if universe_counts:
+    st.info(f"📊 Current universe: " + " | ".join(f"{m}: {c}" for m, c in universe_counts.items()))
+else:
+    st.warning("⚠️ No companies loaded yet. Click a button above to get started.")
+
+st.divider()
+
+# ============================================================================
+# STEP 2: REFRESH PRICES & TECHNICALS
+# ============================================================================
+st.subheader("2. Refresh Prices & Technicals")
+st.caption("Fetches historical prices and computes moving averages, RSI, MACD, etc. Required before running any strategy.")
+
+col1, col2, col3 = st.columns(3)
+with col1:
+    price_market = st.selectbox("Market", ["US", "IN", "ALL"], key="price_market")
+with col2:
+    price_period = st.selectbox("History period", ["1y", "2y", "5y"], index=1,
+                                help="220 EMA / SMA220 strategies need at least 2y of data.")
+with col3:
+    st.write("")
+    st.write("")
+    run_refresh = st.button("▶️ Refresh Prices", type="primary", use_container_width=True)
+
+if run_refresh:
+    progress_bar = st.progress(0)
+    status_text = st.empty()
+
+    def progress_callback(current, total, status):
+        progress_bar.progress(min(current / max(total, 1), 1.0))
+        status_text.text(f"{status} ({current}/{total})")
+
+    try:
+        with st.spinner("Refreshing prices and technicals... this can take a while for large universes."):
+            stats = refresh_prices(con, market=price_market, period=price_period,
+                                  progress_callback=progress_callback)
+        progress_bar.progress(1.0)
+        st.success(f"✅ Done. Attempted: {stats['attempted']}, Succeeded: {stats['succeeded']}, Failed: {stats['failed']}")
+    except Exception as e:
+        st.error(f"❌ Error refreshing prices: {e}")
+
+# Show current technicals coverage
+cursor.execute("SELECT COUNT(*) FROM technicals_latest")
+tech_count = cursor.fetchone()[0]
+st.info(f"📈 Stocks with computed technicals: {tech_count}")
+
+st.divider()
+
+# ============================================================================
+# REFRESH STATUS LOG
+# ============================================================================
+st.subheader("Refresh History")
+
 try:
-    cursor = con.cursor()
     cursor.execute("""
         SELECT data_type, market, status, finished_at, tickers_succeeded, tickers_failed
         FROM data_refresh_log
@@ -58,10 +145,11 @@ try:
                 if finished_at:
                     st.write(f"{finished_at[:10]}")
     else:
-        st.info("📦 No refresh history yet. Click the buttons below to load data.")
-except Exception as e:
-    st.info("📦 No refresh history yet. Click the buttons below to start loading stock data.")
+        st.info("📦 No refresh history yet. Use the buttons above to load data.")
+except Exception:
+    st.info("📦 No refresh history yet. Use the buttons above to load data.")
 
+st.divider()
 st.subheader("India Fundamentals Note")
 st.info("""
 🇮🇳 **Tiered Coverage**: Indian fundamentals are populated only for Nifty 500 + BSE 500 stocks (~700-900 names).
