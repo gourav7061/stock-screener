@@ -40,7 +40,7 @@ CREATE TABLE IF NOT EXISTS technicals_latest (
     bb_upper REAL, bb_lower REAL, bb_mid REAL, bb_percent_b REAL,
     pct_change_1d REAL, pct_change_1m REAL, pct_change_3m REAL, pct_change_1y REAL,
     pct_from_52w_high REAL, pct_from_52w_low REAL,
-    52w_low REAL, 52w_low_25pct REAL,
+    "52w_low" REAL, "52w_low_25pct" REAL,
     volume INTEGER, avg_volume_20d INTEGER, volume_spike_ratio REAL,
     updated_at TEXT NOT NULL,
     FOREIGN KEY (ticker) REFERENCES companies(ticker)

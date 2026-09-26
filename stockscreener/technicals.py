@@ -199,7 +199,7 @@ def compute_and_store_technicals(con: sqlite3.Connection, ticker: str):
         (ticker, as_of_date, price, sma20, sma50, sma150, sma200, sma220, ema220, ema12, ema26, rsi14,
          macd, macd_signal, macd_hist, bb_upper, bb_lower, bb_mid, bb_percent_b,
          pct_change_1d, pct_change_1m, pct_change_3m, pct_change_1y,
-         pct_from_52w_high, pct_from_52w_low, 52w_low, 52w_low_25pct, volume, avg_volume_20d, volume_spike_ratio, updated_at)
+         pct_from_52w_high, pct_from_52w_low, "52w_low", "52w_low_25pct", volume, avg_volume_20d, volume_spike_ratio, updated_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, (ticker, tech_dict["as_of_date"], tech_dict["price"], tech_dict["sma20"], tech_dict["sma50"],
           tech_dict["sma150"], tech_dict["sma200"], tech_dict["sma220"], tech_dict["ema220"],
