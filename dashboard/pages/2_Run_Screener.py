@@ -30,12 +30,15 @@ except Exception:
     metrics_registry = BUILT_IN_METRICS.copy()
 
 # Check data freshness
-last_tech = get_last_refresh(con, "prices", market="US")
-if last_tech:
-    dt = datetime.fromisoformat(last_tech["finished_at"])
-    ago_days = (datetime.now(timezone.utc).replace(tzinfo=None) - dt.replace(tzinfo=None)).days
-    if ago_days > STALENESS_WARNING_DAYS:
-        st.warning(f"⚠️ Price data is {ago_days} days old. Go to 'Data Refresh' to update.")
+try:
+    last_tech = get_last_refresh(con, "prices", market="US")
+    if last_tech:
+        dt = datetime.fromisoformat(last_tech["finished_at"])
+        ago_days = (datetime.now(timezone.utc).replace(tzinfo=None) - dt.replace(tzinfo=None)).days
+        if ago_days > STALENESS_WARNING_DAYS:
+            st.warning(f"⚠️ Price data is {ago_days} days old. Go to 'Data Refresh' to update.")
+except Exception:
+    pass
 
 # Step 1: Pick strategy
 st.subheader("1. Choose Strategy")
