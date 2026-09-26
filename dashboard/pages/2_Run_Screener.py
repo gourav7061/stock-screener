@@ -30,7 +30,10 @@ if last_tech:
 
 # Step 1: Pick strategy
 st.subheader("1. Choose Strategy")
-strategies = list_strategies(con)
+try:
+    strategies = list_strategies(con)
+except:
+    strategies = []
 
 if not strategies:
     st.info("No strategies saved yet. Go to 'Strategy Builder' to create one.")

@@ -21,7 +21,11 @@ metrics_registry = get_metrics_registry(con)
 
 # Load/new strategy
 st.subheader("1. Start")
-existing = list_strategies(con)
+try:
+    existing = list_strategies(con)
+except:
+    existing = []
+
 load_choice = st.selectbox("Load existing strategy (optional)", ["-- New Strategy --"] + [s["name"] for s in existing])
 
 if "strategy" not in st.session_state or st.session_state.get("loaded_from") != load_choice:

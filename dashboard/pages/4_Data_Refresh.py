@@ -31,31 +31,36 @@ python tools/refresh_prices.py --market US --period 2y
 st.subheader("Refresh Status")
 
 # Show last refresh times
-cursor = con.cursor()
-cursor.execute("""
-    SELECT data_type, market, status, finished_at, tickers_succeeded, tickers_failed
-    FROM data_refresh_log
-    ORDER BY finished_at DESC
-    LIMIT 10
-""")
+try:
+    cursor = con.cursor()
+    cursor.execute("""
+        SELECT data_type, market, status, finished_at, tickers_succeeded, tickers_failed
+        FROM data_refresh_log
+        ORDER BY finished_at DESC
+        LIMIT 10
+    """)
 
-logs = cursor.fetchall()
-if logs:
-    for log in logs:
-        data_type, market, status, finished_at, succeeded, failed = log
-        status_icon = "✓" if status == "success" else "⚠️" if status == "partial" else "✗"
+    logs = cursor.fetchall()
+    if logs:
+        for log in logs:
+            data_type, market, status, finished_at, succeeded, failed = log
+            status_icon = "✓" if status == "success" else "⚠️" if status == "partial" else "✗"
 
-        col1, col2, col3, col4 = st.columns([2, 1, 1, 2])
-        with col1:
-            st.write(f"{status_icon} {data_type} ({market or 'N/A'})")
-        with col2:
-            st.write(f"{status}")
-        with col3:
-            if succeeded or failed:
-                st.write(f"{succeeded}/{succeeded + failed}")
-        with col4:
-            if finished_at:
-                st.write(f"{finished_at[:10]}")
+            col1, col2, col3, col4 = st.columns([2, 1, 1, 2])
+            with col1:
+                st.write(f"{status_icon} {data_type} ({market or 'N/A'})")
+            with col2:
+                st.write(f"{status}")
+            with col3:
+                if succeeded or failed:
+                    st.write(f"{succeeded}/{succeeded + failed}")
+            with col4:
+                if finished_at:
+                    st.write(f"{finished_at[:10]}")
+    else:
+        st.info("📦 No refresh history yet. Click the buttons below to load data.")
+except Exception as e:
+    st.info("📦 No refresh history yet. Click the buttons below to start loading stock data.")
 
 st.subheader("India Fundamentals Note")
 st.info("""
