@@ -68,14 +68,18 @@ def get_metrics_registry(con: sqlite3.Connection = None) -> Dict[str, Dict]:
     registry = BUILT_IN_METRICS.copy()
 
     if con:
-        cursor = con.cursor()
-        cursor.execute("SELECT line_item_key, label, category, unit FROM custom_line_items")
-        for row in cursor.fetchall():
-            registry[row[0]] = {
-                "label": row[1],
-                "category": row[2],
-                "unit": row[3] or "",
-            }
+        try:
+            cursor = con.cursor()
+            cursor.execute("SELECT line_item_key, label, category, unit FROM custom_line_items")
+            for row in cursor.fetchall():
+                registry[row[0]] = {
+                    "label": row[1],
+                    "category": row[2],
+                    "unit": row[3] or "",
+                }
+        except Exception:
+            # custom_line_items table doesn't exist yet, skip custom metrics
+            pass
 
     return registry
 
