@@ -250,25 +250,49 @@ def save_strategy(con: sqlite3.Connection, strategy: Dict) -> int:
 
     cursor = con.cursor()
 
-    # Check if strategy already exists by name
-    cursor.execute("SELECT id FROM strategies WHERE name = ?", (strategy["name"],))
-    existing = cursor.fetchone()
+    try:
+        # Check if strategy already exists by name
+        cursor.execute("SELECT id FROM strategies WHERE name = ?", (strategy["name"],))
+        existing = cursor.fetchone()
 
-    if existing:
-        strategy_id = existing[0]
-        cursor.execute("""
-            UPDATE strategies SET definition_json = ?, updated_at = ?
-            WHERE id = ?
-        """, (definition_json, now, strategy_id))
-    else:
-        cursor.execute("""
-            INSERT INTO strategies (name, definition_json, created_at, updated_at)
-            VALUES (?, ?, ?, ?)
-        """, (strategy["name"], definition_json, now, now))
-        strategy_id = cursor.lastrowid
+        if existing:
+            strategy_id = existing[0]
+            cursor.execute("""
+                UPDATE strategies SET definition_json = ?, updated_at = ?
+                WHERE id = ?
+            """, (definition_json, now, strategy_id))
+        else:
+            cursor.execute("""
+                INSERT INTO strategies (name, definition_json, created_at, updated_at)
+                VALUES (?, ?, ?, ?)
+            """, (strategy["name"], definition_json, now, now))
+            strategy_id = cursor.lastrowid
 
-    con.commit()
-    return strategy_id
+        con.commit()
+        return strategy_id
+    except sqlite3.OperationalError as e:
+        if "strategies" in str(e):
+            # Table doesn't exist, try to create it
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS strategies (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT NOT NULL UNIQUE,
+                    definition_json TEXT NOT NULL,
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL
+                )
+            """)
+            con.commit()
+            # Retry the insert
+            cursor.execute("""
+                INSERT INTO strategies (name, definition_json, created_at, updated_at)
+                VALUES (?, ?, ?, ?)
+            """, (strategy["name"], definition_json, now, now))
+            strategy_id = cursor.lastrowid
+            con.commit()
+            return strategy_id
+        else:
+            raise
 
 
 def delete_strategy(con: sqlite3.Connection, strategy_id: int) -> None:
