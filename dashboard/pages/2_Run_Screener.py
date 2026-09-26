@@ -8,17 +8,26 @@ from datetime import datetime, timezone
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from stockscreener.db import get_connection, get_last_refresh
+from stockscreener.db import init_db, get_connection, get_last_refresh
 from stockscreener.config import DB_PATH, STALENESS_WARNING_DAYS
 from stockscreener.strategy_engine import list_strategies, load_strategy, run_strategy_against_db
-from stockscreener.metrics import get_metrics_registry
+from stockscreener.metrics import get_metrics_registry, BUILT_IN_METRICS
 
 st.set_page_config(page_title="Run Screener", layout="wide")
 st.title("🔍 Run Screener")
 st.markdown("Execute your strategy against cached stock data.")
 
+# Initialize database
+try:
+    init_db(DB_PATH)
+except Exception:
+    pass
+
 con = get_connection(DB_PATH)
-metrics_registry = get_metrics_registry(con)
+try:
+    metrics_registry = get_metrics_registry(con)
+except Exception:
+    metrics_registry = BUILT_IN_METRICS.copy()
 
 # Check data freshness
 last_tech = get_last_refresh(con, "prices", market="US")

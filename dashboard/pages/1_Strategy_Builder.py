@@ -7,17 +7,26 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from stockscreener.db import get_connection
+from stockscreener.db import init_db, get_connection
 from stockscreener.config import DB_PATH
 from stockscreener.strategy_engine import list_strategies, load_strategy, save_strategy, validate_strategy, describe_node
-from stockscreener.metrics import get_metrics_registry, OPERATORS
+from stockscreener.metrics import get_metrics_registry, OPERATORS, BUILT_IN_METRICS
 
 st.set_page_config(page_title="Strategy Builder", layout="wide")
 st.title("🛠️ Strategy Builder")
 st.markdown("Create no-code strategies with AND/OR logic.")
 
+# Initialize database
+try:
+    init_db(DB_PATH)
+except Exception:
+    pass
+
 con = get_connection(DB_PATH)
-metrics_registry = get_metrics_registry(con)
+try:
+    metrics_registry = get_metrics_registry(con)
+except Exception:
+    metrics_registry = BUILT_IN_METRICS.copy()
 
 # Load/new strategy
 st.subheader("1. Start")
