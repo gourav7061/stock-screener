@@ -40,7 +40,7 @@ CREATE TABLE IF NOT EXISTS technicals_latest (
     bb_upper REAL, bb_lower REAL, bb_mid REAL, bb_percent_b REAL,
     pct_change_1d REAL, pct_change_1m REAL, pct_change_3m REAL, pct_change_1y REAL,
     pct_from_52w_high REAL, pct_from_52w_low REAL,
-    "52w_low" REAL, "52w_low_25pct" REAL,
+    "52w_low" REAL, "52w_low_25pct" REAL, "52w_high" REAL,
     volume INTEGER, avg_volume_20d INTEGER, volume_spike_ratio REAL,
     updated_at TEXT NOT NULL,
     FOREIGN KEY (ticker) REFERENCES companies(ticker)
@@ -69,9 +69,28 @@ CREATE TABLE IF NOT EXISTS fundamentals_latest (
     pe_ratio REAL, forward_pe REAL, pb_ratio REAL, debt_to_equity REAL,
     roe REAL, profit_margin REAL, revenue_growth REAL, earnings_growth REAL,
     dividend_yield REAL, market_cap REAL,
+    current_price REAL, high_52w REAL, low_52w REAL, book_value REAL,
+    roce REAL, face_value REAL, debt REAL, net_worth REAL,
+    source TEXT,
     updated_at TEXT NOT NULL,
     FOREIGN KEY (ticker) REFERENCES companies(ticker)
 );
+
+CREATE TABLE IF NOT EXISTS shareholding_pattern (
+    ticker              TEXT NOT NULL,
+    period_end_date     TEXT NOT NULL,
+    period_label        TEXT,
+    promoter_pct        REAL,
+    fii_pct             REAL,
+    dii_pct             REAL,
+    others_pct          REAL,
+    num_shareholders    INTEGER,
+    source              TEXT NOT NULL,
+    fetched_at          TEXT NOT NULL,
+    PRIMARY KEY (ticker, period_end_date),
+    FOREIGN KEY (ticker) REFERENCES companies(ticker)
+);
+CREATE INDEX IF NOT EXISTS idx_shareholding_ticker ON shareholding_pattern(ticker);
 
 CREATE TABLE IF NOT EXISTS custom_line_items (
     line_item_key TEXT PRIMARY KEY,

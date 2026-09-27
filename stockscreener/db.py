@@ -25,22 +25,30 @@ def init_db(db_path: Path = DB_PATH) -> sqlite3.Connection:
 
 
 def _migrate_missing_columns(con: sqlite3.Connection) -> None:
-    """Add columns to technicals_latest that exist in the schema but not in an older table
-    on disk (CREATE TABLE IF NOT EXISTS skips existing tables, so new columns never land there
+    """Add columns to tables that exist in the schema but not in an older table on disk
+    (CREATE TABLE IF NOT EXISTS skips existing tables, so new columns never land there
     without this)."""
-    expected_columns = {
-        "sma150": "REAL", "sma220": "REAL", "ema220": "REAL",
-        '"52w_low"': "REAL", '"52w_low_25pct"': "REAL",
+    tables_and_columns = {
+        "technicals_latest": {
+            "sma150": "REAL", "sma220": "REAL", "ema220": "REAL",
+            '"52w_low"': "REAL", '"52w_low_25pct"': "REAL", '"52w_high"': "REAL",
+        },
+        "fundamentals_latest": {
+            "current_price": "REAL", "high_52w": "REAL", "low_52w": "REAL",
+            "book_value": "REAL", "roce": "REAL", "face_value": "REAL",
+            "debt": "REAL", "net_worth": "REAL", "source": "TEXT",
+        },
     }
 
     cursor = con.cursor()
-    cursor.execute("PRAGMA table_info(technicals_latest)")
-    existing = {row[1] for row in cursor.fetchall()}
+    for table, expected_columns in tables_and_columns.items():
+        cursor.execute(f"PRAGMA table_info({table})")
+        existing = {row[1] for row in cursor.fetchall()}
 
-    for col, col_type in expected_columns.items():
-        col_name = col.strip('"')
-        if col_name not in existing:
-            cursor.execute(f"ALTER TABLE technicals_latest ADD COLUMN {col} {col_type}")
+        for col, col_type in expected_columns.items():
+            col_name = col.strip('"')
+            if col_name not in existing:
+                cursor.execute(f"ALTER TABLE {table} ADD COLUMN {col} {col_type}")
 
 
 def get_connection(db_path: Path = DB_PATH) -> sqlite3.Connection:

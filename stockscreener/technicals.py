@@ -90,7 +90,7 @@ def compute_pct_change(close: pd.Series, days: int) -> float:
 def compute_52week_metrics(close: pd.Series) -> tuple:
     """Compute 52-week high/low, % from high, and low value."""
     if len(close) < 252:  # ~252 trading days per year
-        return np.nan, np.nan, np.nan, np.nan
+        return np.nan, np.nan, np.nan, np.nan, np.nan
 
     recent_252 = close.tail(252)
     high_52w = recent_252.max()
@@ -101,7 +101,7 @@ def compute_52week_metrics(close: pd.Series) -> tuple:
     pct_from_low = ((curr - low_52w) / low_52w * 100)
     low_52w_25pct = low_52w * 1.25
 
-    return pct_from_high, pct_from_low, low_52w, low_52w_25pct
+    return pct_from_high, pct_from_low, low_52w, low_52w_25pct, high_52w
 
 
 def compute_technicals_for_ticker(price_df: pd.DataFrame) -> dict:
@@ -130,7 +130,7 @@ def compute_technicals_for_ticker(price_df: pd.DataFrame) -> dict:
     macd, macd_signal, macd_hist = compute_macd(close)
     bb_upper, bb_lower, bb_mid, bb_percent_b = compute_bollinger_bands(close)
     volume_spike = compute_volume_spike_ratio(volume)
-    pct_from_high, pct_from_low, low_52w, low_52w_25pct = compute_52week_metrics(close)
+    pct_from_high, pct_from_low, low_52w, low_52w_25pct, high_52w = compute_52week_metrics(close)
 
     pct_1d = compute_pct_change(close, 1)
     pct_1m = compute_pct_change(close, 21)
@@ -164,6 +164,7 @@ def compute_technicals_for_ticker(price_df: pd.DataFrame) -> dict:
         "pct_from_52w_low": round(float(pct_from_low), 2) if pd.notna(pct_from_low) else None,
         "52w_low": round(float(low_52w), 2) if pd.notna(low_52w) else None,
         "52w_low_25pct": round(float(low_52w_25pct), 2) if pd.notna(low_52w_25pct) else None,
+        "52w_high": round(float(high_52w), 2) if pd.notna(high_52w) else None,
         "volume": int(volume.iloc[-1]) if pd.notna(volume.iloc[-1]) else None,
         "avg_volume_20d": int(avg_vol_20d) if pd.notna(avg_vol_20d) else None,
         "volume_spike_ratio": round(float(volume_spike), 2) if pd.notna(volume_spike) else None,
@@ -199,15 +200,15 @@ def compute_and_store_technicals(con: sqlite3.Connection, ticker: str):
         (ticker, as_of_date, price, sma20, sma50, sma150, sma200, sma220, ema220, ema12, ema26, rsi14,
          macd, macd_signal, macd_hist, bb_upper, bb_lower, bb_mid, bb_percent_b,
          pct_change_1d, pct_change_1m, pct_change_3m, pct_change_1y,
-         pct_from_52w_high, pct_from_52w_low, "52w_low", "52w_low_25pct", volume, avg_volume_20d, volume_spike_ratio, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         pct_from_52w_high, pct_from_52w_low, "52w_low", "52w_low_25pct", "52w_high", volume, avg_volume_20d, volume_spike_ratio, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, (ticker, tech_dict["as_of_date"], tech_dict["price"], tech_dict["sma20"], tech_dict["sma50"],
           tech_dict["sma150"], tech_dict["sma200"], tech_dict["sma220"], tech_dict["ema220"],
           None, None, tech_dict["rsi14"], tech_dict["macd"], tech_dict["macd_signal"],
           tech_dict["macd_hist"], tech_dict["bb_upper"], tech_dict["bb_lower"], tech_dict["bb_mid"],
           tech_dict["bb_percent_b"], tech_dict["pct_change_1d"], tech_dict["pct_change_1m"],
           tech_dict["pct_change_3m"], tech_dict["pct_change_1y"], tech_dict["pct_from_52w_high"],
-          tech_dict["pct_from_52w_low"], tech_dict["52w_low"], tech_dict["52w_low_25pct"],
+          tech_dict["pct_from_52w_low"], tech_dict["52w_low"], tech_dict["52w_low_25pct"], tech_dict["52w_high"],
           tech_dict["volume"], tech_dict["avg_volume_20d"],
           tech_dict["volume_spike_ratio"], tech_dict["updated_at"]))
 

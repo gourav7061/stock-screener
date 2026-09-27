@@ -21,6 +21,7 @@ BUILT_IN_METRICS = {
     "pct_from_52w_high": {"label": "% Below 52-Week High", "category": "Technical", "unit": "%"},
     "pct_from_52w_low": {"label": "% Above 52-Week Low", "category": "Technical", "unit": "%"},
     "52w_low": {"label": "52-Week Low", "category": "Technical", "unit": ""},
+    "52w_high": {"label": "52-Week High", "category": "Technical", "unit": ""},
     "52w_low_25pct": {"label": "52-Week Low + 25%", "category": "Technical", "unit": ""},
     "volume": {"label": "Latest Volume", "category": "Technical", "unit": ""},
     "avg_volume_20d": {"label": "20-Day Average Volume", "category": "Technical", "unit": ""},

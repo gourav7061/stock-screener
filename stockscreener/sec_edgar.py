@@ -80,7 +80,7 @@ def normalize_companyfacts(cik: str, ticker: str, facts_json: Dict, line_item_ma
 
             for entry in values:
                 if entry.get("val") is None:
-                continue
+                    continue
 
                 # Extract fiscal period from filing date
                 filing_date = entry.get("filed", "")
