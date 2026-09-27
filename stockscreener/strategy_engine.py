@@ -45,6 +45,9 @@ def evaluate_condition(cond: dict, values: Dict[str, float], con: sqlite3.Connec
         target = values[compare_metric_key]
         if target is None or (isinstance(target, float) and pd.isna(target)):
             return False
+        multiplier = cond.get("multiplier")
+        if multiplier is not None:
+            target = target * multiplier
     else:  # "value"
         target = cond.get("value")
 
@@ -143,6 +146,15 @@ def describe_node(node: dict, metrics_registry: Dict) -> str:
             return " OR ".join([f"({d})" if is_group(item) else d for d, item in zip(descriptions, items)])
         else:
             return ""
+    elif node.get("condition_type") == "dipped_below":
+        cond = node
+        compare_level = cond.get("compare_level")
+        days = cond.get("days", 90)
+        if compare_level == "value":
+            level_label = cond.get("threshold_value")
+        else:
+            level_label = metrics_registry.get(compare_level, {}).get("label", compare_level)
+        return f"Price dipped below {level_label} at least once in the past {days} trading days"
     else:
         cond = node
         metric_key = cond.get("metric")
@@ -155,6 +167,9 @@ def describe_node(node: dict, metrics_registry: Dict) -> str:
         if compare_type == "metric":
             compare_metric_key = cond.get("compare_metric")
             target_label = metrics_registry.get(compare_metric_key, {}).get("label", compare_metric_key)
+            multiplier = cond.get("multiplier")
+            if multiplier is not None and multiplier != 1:
+                return f"{label} {op_text} {multiplier}x {target_label}"
             return f"{label} {op_text} {target_label}"
         else:
             value = cond.get("value")
@@ -188,6 +203,15 @@ def validate_strategy(strategy: dict, metrics_registry: Dict, max_depth: int = 5
 
             for item in items:
                 validate_node(item, depth + 1)
+        elif node.get("condition_type") == "dipped_below":
+            compare_level = node.get("compare_level")
+            if compare_level != "value" and compare_level not in metrics_registry:
+                errors.append(f"Unknown metric: {compare_level}")
+            if compare_level == "value" and not isinstance(node.get("threshold_value"), (int, float)):
+                errors.append("dipped_below with compare_level='value' requires a numeric threshold_value")
+            days = node.get("days", 90)
+            if not isinstance(days, int) or days <= 0:
+                errors.append(f"dipped_below days must be a positive integer, got: {days!r}")
         else:
             metric_key = node.get("metric")
             if metric_key not in metrics_registry:
@@ -202,6 +226,9 @@ def validate_strategy(strategy: dict, metrics_registry: Dict, max_depth: int = 5
                 compare_metric_key = node.get("compare_metric")
                 if compare_metric_key not in metrics_registry:
                     errors.append(f"Unknown compare metric: {compare_metric_key}")
+                multiplier = node.get("multiplier")
+                if multiplier is not None and not isinstance(multiplier, (int, float)):
+                    errors.append(f"multiplier must be a number, got: {multiplier!r}")
             elif compare_type != "value":
                 errors.append(f"Invalid compare_type: {compare_type}")
 
