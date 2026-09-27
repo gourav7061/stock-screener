@@ -16,8 +16,9 @@ st.title("📋 Fundamentals Analysis")
 
 try:
     init_db(DB_PATH)
-except Exception:
-    pass
+except Exception as e:
+    st.error(f"⚠️ Database initialization/migration failed: {e}")
+    st.caption("Fundamentals writes will likely fail until this is fixed — the table schema may be out of date.")
 
 con = get_connection(DB_PATH)
 cursor = con.cursor()

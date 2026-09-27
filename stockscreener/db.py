@@ -12,7 +12,7 @@ def init_db(db_path: Path = DB_PATH) -> sqlite3.Connection:
     """Initialize the database by running the schema. Idempotent."""
     schema_path = Path(__file__).parent / "schema.sql"
 
-    con = sqlite3.connect(str(db_path))
+    con = sqlite3.connect(str(db_path), timeout=30)
     with open(schema_path, "r") as f:
         con.executescript(f.read())
     con.commit()
@@ -53,8 +53,12 @@ def _migrate_missing_columns(con: sqlite3.Connection) -> None:
 
 def get_connection(db_path: Path = DB_PATH) -> sqlite3.Connection:
     """Get a connection to the database."""
-    con = sqlite3.connect(str(db_path))
+    con = sqlite3.connect(str(db_path), timeout=30)
     con.row_factory = sqlite3.Row
+    # Streamlit Cloud can have multiple sessions hitting this file concurrently;
+    # WAL lets reads and writes overlap instead of raising "database is locked".
+    con.execute("PRAGMA journal_mode=WAL")
+    con.execute("PRAGMA busy_timeout=30000")
     return con
 
 
