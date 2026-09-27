@@ -305,51 +305,57 @@ def refresh_company_fundamentals(con, ticker: str, screener_symbol: Optional[str
     cursor = con.cursor()
     line_item_count = 0
 
-    # --- Quarterly + Annual P&L, Balance Sheet, Cash Flow -> `fundamentals` ---
-    quarterly_rows = parse_quarterly_pl(html)
-    annual_pl_rows = parse_annual_pl(html)
-    balance_sheet_rows = parse_balance_sheet(html)
-    cash_flow_rows = parse_cash_flow(html)
+    try:
+        # --- Quarterly + Annual P&L, Balance Sheet, Cash Flow -> `fundamentals` ---
+        quarterly_rows = parse_quarterly_pl(html)
+        annual_pl_rows = parse_annual_pl(html)
+        balance_sheet_rows = parse_balance_sheet(html)
+        cash_flow_rows = parse_cash_flow(html)
 
-    for row in quarterly_rows:
-        fiscal_period = _india_fiscal_period_label(row["period_key"])
-        _upsert_fundamental(cursor, ticker, fiscal_period, row["period_key"],
-                            row["line_item_key"], row["line_item_label"], row["value"], fetched_at)
-        line_item_count += 1
+        for row in quarterly_rows:
+            fiscal_period = _india_fiscal_period_label(row["period_key"])
+            _upsert_fundamental(cursor, ticker, fiscal_period, row["period_key"],
+                                row["line_item_key"], row["line_item_label"], row["value"], fetched_at)
+            line_item_count += 1
 
-    for row in annual_pl_rows + balance_sheet_rows + cash_flow_rows:
-        period_key = row["period_key"]
-        # India FY is named after its ending year (period ending Mar 2025 = FY2025),
-        # matching _india_fiscal_period_label's convention for quarters (Q4FY25).
-        fiscal_period = "TTM" if period_key == "TTM" else f"FY{int(period_key[:4])}"
-        period_end_date = None if period_key == "TTM" else period_key
-        _upsert_fundamental(cursor, ticker, fiscal_period, period_end_date,
-                            row["line_item_key"], row["line_item_label"], row["value"], fetched_at)
-        line_item_count += 1
+        for row in annual_pl_rows + balance_sheet_rows + cash_flow_rows:
+            period_key = row["period_key"]
+            # India FY is named after its ending year (period ending Mar 2025 = FY2025),
+            # matching _india_fiscal_period_label's convention for quarters (Q4FY25).
+            fiscal_period = "TTM" if period_key == "TTM" else f"FY{int(period_key[:4])}"
+            period_end_date = None if period_key == "TTM" else period_key
+            _upsert_fundamental(cursor, ticker, fiscal_period, period_end_date,
+                                row["line_item_key"], row["line_item_label"], row["value"], fetched_at)
+            line_item_count += 1
 
-    # --- Top ratios (current point-in-time) -> `fundamentals_latest` ---
-    ratios = parse_top_ratios(html)
-    _upsert_fundamentals_latest(cursor, ticker, ratios, annual_pl_rows, balance_sheet_rows, fetched_at)
+        # --- Top ratios (current point-in-time) -> `fundamentals_latest` ---
+        ratios = parse_top_ratios(html)
+        _upsert_fundamentals_latest(cursor, ticker, ratios, annual_pl_rows, balance_sheet_rows, fetched_at)
 
-    # --- Shareholding pattern (quarterly + yearly) -> `shareholding_pattern` ---
-    shareholding_rows = parse_shareholding(html, "quarterly") + parse_shareholding(html, "yearly")
-    seen_dates = set()
-    shareholding_count = 0
-    for row in shareholding_rows:
-        if row["period_end_date"] in seen_dates:
-            continue
-        seen_dates.add(row["period_end_date"])
-        cursor.execute("""
-            INSERT OR REPLACE INTO shareholding_pattern
-            (ticker, period_end_date, period_label, promoter_pct, fii_pct, dii_pct, others_pct,
-             num_shareholders, source, fetched_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (ticker, row["period_end_date"], row["period_label"], row["promoter_pct"],
-              row["fii_pct"], row["dii_pct"], row["others_pct"], row["num_shareholders"],
-              "SCREENER_IN", fetched_at))
-        shareholding_count += 1
+        # --- Shareholding pattern (quarterly + yearly) -> `shareholding_pattern` ---
+        shareholding_rows = parse_shareholding(html, "quarterly") + parse_shareholding(html, "yearly")
+        seen_dates = set()
+        shareholding_count = 0
+        for row in shareholding_rows:
+            if row["period_end_date"] in seen_dates:
+                continue
+            seen_dates.add(row["period_end_date"])
+            cursor.execute("""
+                INSERT OR REPLACE INTO shareholding_pattern
+                (ticker, period_end_date, period_label, promoter_pct, fii_pct, dii_pct, others_pct,
+                 num_shareholders, source, fetched_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (ticker, row["period_end_date"], row["period_label"], row["promoter_pct"],
+                  row["fii_pct"], row["dii_pct"], row["others_pct"], row["num_shareholders"],
+                  "SCREENER_IN", fetched_at))
+            shareholding_count += 1
 
-    con.commit()
+        con.commit()
+    except Exception as e:
+        con.rollback()
+        return {"success": False, "line_items": 0, "shareholding_periods": 0,
+                "error": f"{type(e).__name__}: {e}"}
+
     return {"success": True, "line_items": line_item_count,
             "shareholding_periods": shareholding_count, "error": None}
 
